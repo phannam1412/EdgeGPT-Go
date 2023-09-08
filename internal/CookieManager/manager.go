@@ -10,9 +10,15 @@ import (
 
 var log = Logger.NewLogger("CookieManager")
 
-const (
-	cookiesPath = "./cookies"
-)
+var cookiesPath = "./cookies"
+
+func init() {
+	dir, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+	cookiesPath = dir
+}
 
 type CookieItem struct {
 	CurrentUsed int
@@ -27,47 +33,48 @@ type Manager struct {
 func NewManager() (*Manager, error) {
 	var cookies []*CookieItem
 
-	entries, err := os.ReadDir(cookiesPath)
+	//entries, err := os.ReadDir(cookiesPath)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//for _, e := range entries {
+	//	if e.IsDir() {
+	//		continue
+	//	}
+	//	filepath := cookiesPath + "/" + e.Name()
+	filepath := os.Getenv("BINGCHAT_COOKIE")
+
+	f, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	cookiesJSON, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		filepath := cookiesPath + "/" + e.Name()
-
-		f, err := os.Open(filepath)
-		if err != nil {
-			continue
-		}
-		cookiesJSON, err := io.ReadAll(f)
-		if err != nil {
-			continue
-		}
-
-		m := mimetype.Detect(cookiesJSON)
-		if !m.Is("application/json") {
-			continue
-		}
-
-		var parse []map[string]any
-		err = json.Unmarshal(cookiesJSON, &parse)
-		if err != nil {
-			continue
-		}
-
-		if err := f.Close(); err != nil {
-			continue
-		}
-
-		cookies = append(cookies, &CookieItem{
-			CurrentUsed: 0,
-			Path:        filepath,
-			Json:        parse,
-		})
+	m := mimetype.Detect(cookiesJSON)
+	if !m.Is("application/json") {
+		return nil, err
 	}
+
+	var parse []map[string]any
+	err = json.Unmarshal(cookiesJSON, &parse)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := f.Close(); err != nil {
+		return nil, err
+	}
+
+	cookies = append(cookies, &CookieItem{
+		CurrentUsed: 0,
+		Path:        filepath,
+		Json:        parse,
+	})
+	//}
 
 	return &Manager{Cookies: cookies}, nil
 }

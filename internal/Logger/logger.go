@@ -29,7 +29,7 @@ func NewLogger(channel string) *zap.SugaredLogger {
 func getLevel() zap.AtomicLevel {
 	level := os.Getenv("LOG_LEVEL")
 	if level == "" {
-		l, err := zapcore.ParseLevel("INFO")
+		l, err := zapcore.ParseLevel("WARN")
 		if err != nil {
 			panic(err)
 		}

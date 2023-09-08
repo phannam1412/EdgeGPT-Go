@@ -24,9 +24,7 @@ var rootCmd = &cobra.Command{
 	Long: "Cli for using Edge Bing. Available commands:\n" +
 		"chat - for speaking with Bing\n" +
 		"gRPC - start gRPC server for speaking with Bing",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(cmd.Long)
-	},
+	Run: runChat,
 }
 
 func init() {

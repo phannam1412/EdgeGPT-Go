@@ -3,15 +3,17 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	md "github.com/MichaelMure/go-term-markdown"
+	"github.com/charmbracelet/glamour"
+	ct "github.com/daviddengcn/go-colortext"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	"github.com/pavel-one/EdgeGPT-Go"
 	"github.com/spf13/cobra"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 var (
@@ -37,7 +39,7 @@ func init() {
 	ChatCmd.Flags().StringVarP(&output, "output", "o", "", "output file(markdown or html like test.md or test.html or just text like `test` file)")
 	ChatCmd.Flags().BoolVarP(&withoutTerminal, "without-term", "w", false, "if output set will be write response to file without terminal")
 	ChatCmd.Flags().StringVarP(&endpoint, "endpoint", "e", "", "set endpoint for create conversation(if the default one doesn't suit you)")
-	ChatCmd.Flags().StringVarP(&style, "style", "s", "balanced", "set conversation style(creative, balanced, precise)")
+	ChatCmd.Flags().StringVarP(&style, "style", "s", "creative", "set conversation style(creative, balanced, precise)")
 }
 
 func runChat(cmd *cobra.Command, args []string) {
@@ -47,10 +49,26 @@ func runChat(cmd *cobra.Command, args []string) {
 
 	reader := bufio.NewReader(os.Stdin)
 
+	var input string
+	newline := `
+`
 	for {
-		fmt.Print("\nYou:\n    ")
-		input, _ := reader.ReadString('\n')
-		input = strings.TrimSpace(input)
+		ct.Foreground(ct.Yellow, false)
+		fmt.Print("\n> ")
+		for {
+			i, err := reader.ReadString('\n')
+			if err != nil {
+				panic(err)
+			}
+			if i == newline && len(input) > 0 {
+				break
+			}
+			if i == newline && len(input) == 0 {
+				continue
+			}
+			input += i
+		}
+		ct.ResetColor()
 
 		if input == "exit" || input == "q" || input == "quiet" {
 			fmt.Println("Good bye!")
@@ -58,6 +76,7 @@ func runChat(cmd *cobra.Command, args []string) {
 		}
 
 		ask(input)
+		input = ""
 	}
 }
 
@@ -85,7 +104,7 @@ func ask(input string) {
 }
 
 func base(input string) {
-	fmt.Println("Bot:")
+	fmt.Println("Bot: searching...")
 
 	var l int
 
@@ -95,6 +114,8 @@ func base(input string) {
 	}
 
 	go mw.Worker()
+
+	text := ""
 
 	for range mw.Chan {
 		var res string
@@ -113,7 +134,15 @@ func base(input string) {
 		}
 		l = anslen
 		fmt.Print(res)
+		text += res
 	}
+
+	// render markdown
+	render, err := glamour.Render(text, "dark")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("\n\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n" + render)
 
 	go writeWithFlags([]byte(mw.Answer.GetAnswer()))
 
@@ -121,7 +150,7 @@ func base(input string) {
 }
 
 func rich(input string) {
-	fmt.Println("Bot:")
+	fmt.Println("Bot: searching...")
 
 	ans := getAnswer(input)
 
