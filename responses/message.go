@@ -78,7 +78,33 @@ func (m *MessageWrapper) Worker() error {
 	var undefinedResponse Undefined
 
 	for {
-		var message []byte
+		var messages []byte
+
+		/* EXAMPLE ERROR MESSAGE:
+		{
+		  "type": 2,
+		  "invocationId": "\u0000",
+		  "item": {
+		    "firstNewMessageIndex": null,
+		    "defaultChatName": null,
+		    "conversationId": "...",
+		    "requestId": "...",
+		    "telemetry": {
+		      "startTime": "2023-09-08T05:09:42.4656485Z"
+		    },
+		    "result": {
+		      "value": "UnauthorizedRequest",
+		      "message": "Conversation signature verification failed. The signature was not the one that was expected.",
+		      "error": "UnauthorizedRequest",
+		      "renewCert": true,
+		      "serviceVersion": "20230906.174"
+		    }
+		  }
+		}{
+		  "type": 3,
+		  "invocationId": "\u0000"
+		}
+		*/
 		_, original, err := m.conn.ReadMessage()
 		if err != nil {
 			return err
@@ -90,41 +116,40 @@ func (m *MessageWrapper) Worker() error {
 				break
 			}
 
-			message = append(message, b)
+			messages = append(messages, b)
 		}
 
-		if err := json.Unmarshal(message, &response); err != nil {
+		if err := json.Unmarshal(messages, &response); err != nil {
 			return err
 		}
 
 		switch response["type"] {
 		case TypeUpdate:
-			if err := json.Unmarshal(message, &updateResponse); err != nil {
+			if err := json.Unmarshal(messages, &updateResponse); err != nil {
 				return err
 			}
 
 			m.Answer = &updateResponse
 			break
 		case TypeFinish:
-			if err := json.Unmarshal(message, &finalResponse); err != nil {
+			if err := json.Unmarshal(messages, &finalResponse); err != nil {
 				return err
 			}
-
 			m.Answer = &finalResponse
 			m.Final = true
-			m.Chan <- message
+			m.Chan <- messages
 			close(m.Chan)
 			return nil
 
 		default:
-			if err := json.Unmarshal(message, &undefinedResponse); err != nil {
+			if err := json.Unmarshal(messages, &undefinedResponse); err != nil {
 				return err
 			}
 
 			m.Answer = &undefinedResponse
 		}
 
-		m.Chan <- message
+		m.Chan <- messages
 	}
 
 }

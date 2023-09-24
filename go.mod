@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/MichaelMure/go-term-markdown v0.1.4
 	github.com/charmbracelet/glamour v0.6.0
+	github.com/chzyer/readline v1.5.1
 	github.com/daviddengcn/go-colortext v1.0.0
 	github.com/gabriel-vasile/mimetype v1.4.2
 	github.com/gomarkdown/markdown v0.0.0-20230322041520-c84983bdbf2a

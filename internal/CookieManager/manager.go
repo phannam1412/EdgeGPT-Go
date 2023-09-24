@@ -2,23 +2,14 @@ package CookieManager
 
 import (
 	"encoding/json"
-	"github.com/gabriel-vasile/mimetype"
-	"github.com/pavel-one/EdgeGPT-Go/internal/Logger"
 	"io"
 	"os"
+
+	"github.com/gabriel-vasile/mimetype"
+	"github.com/pavel-one/EdgeGPT-Go/internal/Logger"
 )
 
 var log = Logger.NewLogger("CookieManager")
-
-var cookiesPath = "./cookies"
-
-func init() {
-	dir, err := os.UserHomeDir()
-	if err != nil {
-		return
-	}
-	cookiesPath = dir
-}
 
 type CookieItem struct {
 	CurrentUsed int

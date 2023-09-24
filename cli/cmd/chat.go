@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	md "github.com/MichaelMure/go-term-markdown"
 	"github.com/charmbracelet/glamour"
+	"github.com/chzyer/readline"
 	ct "github.com/daviddengcn/go-colortext"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
@@ -46,35 +46,26 @@ func runChat(cmd *cobra.Command, args []string) {
 	initLoggerWithStorage("Chat")
 	setConversationEndpoint()
 	newChat("chat")
-
-	reader := bufio.NewReader(os.Stdin)
-
+	rl, err := readline.New("> ")
+	if err != nil {
+		panic(err)
+	}
+	defer rl.Close()
 	var input string
-	newline := `
-`
 	for {
 		ct.Foreground(ct.Yellow, false)
 		fmt.Print("\n> ")
 		for {
-			i, err := reader.ReadString('\n')
+			i, err := rl.Readline() // wait for user's input
 			if err != nil {
-				panic(err)
-			}
-			if i == newline && len(input) > 0 {
 				break
 			}
-			if i == newline && len(input) == 0 {
+			if len(i) == 0 { // ignore if user just press enter and doesn't input anything
 				continue
 			}
 			input += i
 		}
 		ct.ResetColor()
-
-		if input == "exit" || input == "q" || input == "quiet" {
-			fmt.Println("Good bye!")
-			break
-		}
-
 		ask(input)
 		input = ""
 	}
@@ -100,24 +91,32 @@ func ask(input string) {
 		return
 	}
 
+	// our default entrypoint here !
 	base(input)
 }
 
 func base(input string) {
 	fmt.Println("Bot: searching...")
 
-	var l int
+	var lastAnswerOffset int
 
 	mw, err := chat.AskAsync(style, input)
 	if err != nil {
-		logger.Fatalln(err)
+		panic(err)
 	}
 
-	go mw.Worker()
+	go func() {
+		err := mw.Worker()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
-	text := ""
+	fullAnswer := ""
 
-	for range mw.Chan {
+	// read answer in real time from websocket
+	var messages []byte
+	for messages = range mw.Chan {
 		var res string
 		ans := mw.Answer.GetAnswer()
 
@@ -127,23 +126,33 @@ func base(input string) {
 			continue
 		}
 
-		if l == 0 {
+		if lastAnswerOffset == 0 { // start of answering
 			res = ans
-		} else if 0 < l && l < anslen {
-			res = ans[l:]
+		} else if 0 < lastAnswerOffset && lastAnswerOffset < anslen { // middle of answering
+			res = ans[lastAnswerOffset:]
 		}
-		l = anslen
+		lastAnswerOffset = anslen
+
+		// print answer in real time
 		fmt.Print(res)
-		text += res
+
+		fullAnswer += res
+	}
+	if fullAnswer == "" {
+		fmt.Println(string(messages))
 	}
 
-	// render markdown
-	render, err := glamour.Render(text, "dark")
+	// render markdown after already receiving full answer
+	// this is to support readabilit
+	render, err := glamour.Render(fullAnswer, "dark")
 	if err != nil {
 		panic(err)
 	}
+
+	// separator between plain text and formatted answer
 	fmt.Println("\n\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n" + render)
 
+	// write answer to stdout
 	go writeWithFlags([]byte(mw.Answer.GetAnswer()))
 
 	return
