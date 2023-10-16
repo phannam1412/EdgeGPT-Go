@@ -20,7 +20,7 @@ type Hub struct {
 	mu           sync.Mutex
 }
 
-func NewHub(conversation *Conversation, config *config.GPT) (*Hub, error) {
+func NewHub(conversation *Conversation, config *config.GPTConfig) (*Hub, error) {
 	if conversation == nil {
 		return nil, errors.New("not set conversation")
 	}

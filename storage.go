@@ -25,12 +25,12 @@ func (s *Storage) GetOrSet(key string) (*GPT, error) {
 
 	conf, err := config.NewGpt()
 	if err != nil {
-		return nil, fmt.Errorf("didn't create GPT config: %s", err)
+		return nil, fmt.Errorf("didn't create GPTConfig config: %s", err)
 	}
 
 	gpt, err = NewGPT(conf)
 	if err != nil {
-		return nil, fmt.Errorf("didn't init GPT service: %s", err)
+		return nil, fmt.Errorf("didn't init GPTConfig service: %s", err)
 	}
 
 	s.Add(gpt, key)

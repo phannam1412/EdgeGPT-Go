@@ -9,14 +9,14 @@ import (
 	"time"
 )
 
-type GPT struct {
+type GPTConfig struct {
 	ConversationUrl *url.URL
 	WssUrl          *url.URL
 	TimeoutRequest  time.Duration
 	Headers         map[string]string
 }
 
-func NewGpt() (*GPT, error) {
+func NewGpt() (*GPTConfig, error) {
 	cu, err := url.Parse(getConversationEndpoint())
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func NewGpt() (*GPT, error) {
 		Helpers.RandInt(0, 255),
 		Helpers.RandInt(0, 255))
 
-	return &GPT{
+	return &GPTConfig{
 		ConversationUrl: cu,
 		WssUrl:          wss,
 		TimeoutRequest:  time.Second * 30,
@@ -59,7 +59,7 @@ func NewGpt() (*GPT, error) {
 			"sec-fetch-mode":              "cors",
 			"sec-fetch-site":              "same-origin",
 			"x-ms-client-request-id":      uid.String(),
-			"x-ms-useragent":              "azsdk-js-api-client-factory/1.0.0-beta.1 core-rest-pipeline/1.10.0 OS/Win32",
+			"x-ms-useragent":              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36 Edg/116.0.1938.81",
 			"Referer":                     "https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx",
 			"Referrer-Policy":             "origin-when-cross-origin",
 			"x-forwarded-for":             forwared,

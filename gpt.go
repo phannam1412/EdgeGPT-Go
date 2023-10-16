@@ -10,10 +10,11 @@ import (
 	"github.com/pavel-one/EdgeGPT-Go/responses"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
-var log = Logger.NewLogger("GPT Service")
+var log = Logger.NewLogger("GPTConfig Service")
 
 const (
 	StyleCreative = "h3imaginative,clgalileo,gencontentv3"
@@ -24,7 +25,7 @@ const (
 )
 
 type GPT struct {
-	Config       *config.GPT
+	Config       *config.GPTConfig
 	client       *http.Client
 	cookies      []*http.Cookie
 	Conversation *Conversation
@@ -33,7 +34,7 @@ type GPT struct {
 }
 
 // NewGPT create new service
-func NewGPT(conf *config.GPT) (*GPT, error) {
+func NewGPT(conf *config.GPTConfig) (*GPT, error) {
 	manager, err := CookieManager.NewManager()
 	if err != nil {
 		return nil, err
@@ -77,11 +78,27 @@ func (g *GPT) createConversation() error {
 		req.AddCookie(cookie)
 	}
 
+	//{ // dump request
+	//	b, _ := httputil.DumpRequest(req, true)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	color.Cyan(string(b))
+	//}
+
 	resp, err := g.client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	//{ // dump response
+	//	b, _ := httputil.DumpResponse(resp, true)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	color.Green(string(b))
+	//}
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("status code not ok: %d, %s", resp.StatusCode, resp.Status)
@@ -97,12 +114,20 @@ func (g *GPT) createConversation() error {
 		return err
 	}
 
+	// retrieve X-Sydney-Conversationsignature from response header
+	// retrieve X-Sydney-Encryptedconversationsignature and set to HUB wss url as "sec_access_token" query parameter
+	// @ref https://github.com/vsakkas/sydney.py/issues/51
+	conversation.ConversationSignature = resp.Header.Get("X-Sydney-Conversationsignature")
 	if conversation.Result.Value.ValueOrZero() != "Success" {
 		return nil
 	}
+	u, err := url.Parse(g.Config.WssUrl.String() + "?" + url.Values{"sec_access_token": {resp.Header.Get("X-Sydney-Encryptedconversationsignature")}}.Encode())
+	if err != nil {
+		return err
+	}
 
 	g.Conversation = conversation
-
+	g.Config.WssUrl = u
 	log.Infoln("New conversation", conversation)
 
 	return nil

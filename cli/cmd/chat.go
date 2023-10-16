@@ -54,7 +54,6 @@ func runChat(cmd *cobra.Command, args []string) {
 	var input string
 	for {
 		ct.Foreground(ct.Yellow, false)
-		fmt.Print("\n> ")
 		for {
 			i, err := rl.Readline() // wait for user's input
 			if err != nil {
@@ -66,6 +65,9 @@ func runChat(cmd *cobra.Command, args []string) {
 			input += i
 		}
 		ct.ResetColor()
+		if len(input) == 0 {
+			continue
+		}
 		ask(input)
 		input = ""
 	}
@@ -112,7 +114,7 @@ func base(input string) {
 		}
 	}()
 
-	fullAnswer := ""
+	var fullAnswer string
 
 	// read answer in real time from websocket
 	var messages []byte
